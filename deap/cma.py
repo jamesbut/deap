@@ -118,6 +118,13 @@ class Strategy(object):
         """
         arz = numpy.random.standard_normal((self.lambda_, self.dim))
         arz = self.centroid + self.sigma * numpy.dot(arz, self.BD.T)
+
+        #If bounds are given, modify individuals to stay within bounds.
+        #Apparently this can make performance worse and screw up the whole covariance
+        #matrix machinery :/
+        if ('lb_' in self.params) and ('ub_' in self.params):
+            arz = self.applyBounds(arz)
+
         return map(ind_init, arz)
 
     def update(self, population):
@@ -203,6 +210,22 @@ class Strategy(object):
         self.damps = 1. + 2. * max(0, sqrt((self.mueff - 1.) /
                                            (self.dim + 1.)) - 1.) + self.cs
         self.damps = params.get("damps", self.damps)
+
+    def applyBounds(self, indvs):
+
+        #Check bounds are the same size as the genotypes
+        assert len(indvs[0]) == len(self.params['lb_'])
+        assert len(indvs[0]) == len(self.params['ub_'])
+
+        #If values exceed bounds, make values equal to bounds
+        for i in range(len(indvs)):
+            for j in range(len(indvs[i])):
+                if indvs[i][j] < self.params['lb_'][j]:
+                    indvs[i][j] = self.params['lb_'][j]
+                if indvs[i][j] > self.params['ub_'][j]:
+                    indvs[i][j] = self.params['ub_'][j]
+
+        return indvs
 
 
 class StrategyOnePlusLambda(object):
