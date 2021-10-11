@@ -122,8 +122,8 @@ class Strategy(object):
         #If bounds are given, modify individuals to stay within bounds.
         #Apparently this can make performance worse and screw up the whole covariance
         #matrix machinery :/
-        if ('lb_' in self.params) and ('ub_' in self.params):
-            arz = self.applyBounds(arz)
+        if (self.lb is not None) or (self.ub is not None):
+            arz = self._applyBounds(arz)
 
         return map(ind_init, arz)
 
@@ -211,19 +211,25 @@ class Strategy(object):
                                            (self.dim + 1.)) - 1.) + self.cs
         self.damps = params.get("damps", self.damps)
 
-    def applyBounds(self, indvs):
+        self.lb = params.get("lb_")
+        self.ub = params.get("ub_")
 
-        #Check bounds are the same size as the genotypes
-        assert len(indvs[0]) == len(self.params['lb_'])
-        assert len(indvs[0]) == len(self.params['ub_'])
+    def _applyBounds(self, indvs):
+
+        if self.lb is not None:
+            assert len(indvs[0]) == len(self.lb)
+        if self.ub is not None:
+            assert len(indvs[0]) == len(self.ub)
 
         #If values exceed bounds, make values equal to bounds
         for i in range(len(indvs)):
             for j in range(len(indvs[i])):
-                if indvs[i][j] < self.params['lb_'][j]:
-                    indvs[i][j] = self.params['lb_'][j]
-                if indvs[i][j] > self.params['ub_'][j]:
-                    indvs[i][j] = self.params['ub_'][j]
+                if self.lb is not None:
+                    if indvs[i][j] < self.params['lb_'][j]:
+                        indvs[i][j] = self.params['lb_'][j]
+                if self.ub is not None:
+                    if indvs[i][j] > self.params['ub_'][j]:
+                        indvs[i][j] = self.params['ub_'][j]
 
         return indvs
 
