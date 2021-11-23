@@ -24,7 +24,7 @@ import copy
 from math import sqrt, log, exp
 import numpy
 
-import tools
+import deap.tools
 
 
 class Strategy(object):
