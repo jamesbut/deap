@@ -108,20 +108,25 @@ class Strategy(object):
         self.update_count = 0
         self.computeParams(self.params)
 
-    def generate(self, ind_init):
-        """Generate a population of :math:`\lambda` individuals of type
+    def generate(self, ind_init, num_indvs=None):
+        """Generate a population of num_indvs individuals of type
         *ind_init* from the current strategy.
 
         :param ind_init: A function object that is able to initialize an
                          individual from a list.
         :returns: A list of individuals.
         """
-        arz = numpy.random.standard_normal((self.lambda_, self.dim))
+
+        # If a number of individuals is not given, set to lambda
+        if num_indvs is None:
+            num_indvs = self.lambda_
+
+        arz = numpy.random.standard_normal((num_indvs, self.dim))
         arz = self.centroid + self.sigma * numpy.dot(arz, self.BD.T)
 
-        #If bounds are given, modify individuals to stay within bounds.
-        #Apparently this can make performance worse and screw up the whole covariance
-        #matrix machinery :/
+        # If bounds are given, modify individuals to stay within bounds.
+        # Apparently this can make performance worse and screw up the whole covariance
+        # matrix machinery :/
         if (self.lb is not None) or (self.ub is not None):
             arz = self._applyBounds(arz)
 
