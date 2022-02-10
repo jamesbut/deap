@@ -104,9 +104,18 @@ class Strategy(object):
 
         self.cond = self.diagD[indx[-1]] / self.diagD[indx[0]]
 
-        self.lambda_ = self.params.get("lambda_", int(4 + 3 * log(self.dim)))
+        self.lambda_ = self.params.get("lambda", int(4 + 3 * log(self.dim)))
         self.update_count = 0
         self.computeParams(self.params)
+
+        # Lower and upper bounds
+        self.lb = self.params.get('lb', None)
+        self.ub = self.params.get('ub', None)
+
+        self.fix_C = self.params.get('fix_C', False)
+        self.fix_sigma = self.params.get('fix_sigma', False)
+
+        self.verbosity = self.params.get('verbosity', False)
 
     def generate(self, ind_init, num_indvs=None):
         """Generate a population of num_indvs individuals of type
@@ -120,6 +129,13 @@ class Strategy(object):
         # If a number of individuals is not given, set to lambda
         if num_indvs is None:
             num_indvs = self.lambda_
+
+        if self.verbosity:
+            print('C:\n', self.C)
+            print('B:\n', self.B)
+            print('D:\n', self.B)
+            print('BD:\n', self.BD)
+            print('sigma:\n', self.sigma)
 
         arz = numpy.random.standard_normal((num_indvs, self.dim))
         arz = self.centroid + self.sigma * numpy.dot(arz, self.BD.T)
@@ -144,43 +160,47 @@ class Strategy(object):
         old_centroid = self.centroid
         self.centroid = numpy.dot(self.weights, population[0:self.mu])
 
-        c_diff = self.centroid - old_centroid
+        if not (self.fix_sigma and self.fix_C):
+            c_diff = self.centroid - old_centroid
 
-        # Cumulation : update evolution path
-        self.ps = (1 - self.cs) * self.ps \
-            + sqrt(self.cs * (2 - self.cs) * self.mueff) / self.sigma \
-            * numpy.dot(self.B, (1. / self.diagD) *
-                        numpy.dot(self.B.T, c_diff))
-
-        hsig = float((numpy.linalg.norm(self.ps) /
-                      sqrt(1. - (1. - self.cs) ** (2. * (self.update_count + 1.))) / self.chiN <
-                      (1.4 + 2. / (self.dim + 1.))))
-
-        self.update_count += 1
-
-        self.pc = (1 - self.cc) * self.pc + hsig \
-            * sqrt(self.cc * (2 - self.cc) * self.mueff) / self.sigma \
-            * c_diff
+            self.ps = (1 - self.cs) * self.ps \
+                + sqrt(self.cs * (2 - self.cs) * self.mueff) / self.sigma \
+                * numpy.dot(self.B, (1. / self.diagD) *
+                            numpy.dot(self.B.T, c_diff))
 
         # Update covariance matrix
-        artmp = population[0:self.mu] - old_centroid
-        self.C = (1 - self.ccov1 - self.ccovmu + (1 - hsig) *
-                  self.ccov1 * self.cc * (2 - self.cc)) * self.C \
-            + self.ccov1 * numpy.outer(self.pc, self.pc) \
-            + self.ccovmu * numpy.dot((self.weights * artmp.T), artmp) \
-            / self.sigma ** 2
+        if not self.fix_C:
 
-        self.sigma *= numpy.exp((numpy.linalg.norm(self.ps) / self.chiN - 1.) *
-                                self.cs / self.damps)
+            hsig = float((numpy.linalg.norm(self.ps) /
+                          sqrt(1. - (1. - self.cs) ** (2. * (self.update_count + 1.))) /
+                          self.chiN < (1.4 + 2. / (self.dim + 1.))))
 
-        self.diagD, self.B = numpy.linalg.eigh(self.C)
-        indx = numpy.argsort(self.diagD)
+            self.pc = (1 - self.cc) * self.pc + hsig \
+                * sqrt(self.cc * (2 - self.cc) * self.mueff) / self.sigma \
+                * c_diff
 
-        self.cond = self.diagD[indx[-1]] / self.diagD[indx[0]]
+            artmp = population[0:self.mu] - old_centroid
+            self.C = (1 - self.ccov1 - self.ccovmu + (1 - hsig) *
+                      self.ccov1 * self.cc * (2 - self.cc)) * self.C \
+                + self.ccov1 * numpy.outer(self.pc, self.pc) \
+                + self.ccovmu * numpy.dot((self.weights * artmp.T), artmp) \
+                / self.sigma ** 2
 
-        self.diagD = self.diagD[indx] ** 0.5
-        self.B = self.B[:, indx]
-        self.BD = self.B * self.diagD
+            self.diagD, self.B = numpy.linalg.eigh(self.C)
+            indx = numpy.argsort(self.diagD)
+
+            self.cond = self.diagD[indx[-1]] / self.diagD[indx[0]]
+
+            self.diagD = self.diagD[indx] ** 0.5
+            self.B = self.B[:, indx]
+            self.BD = self.B * self.diagD
+
+        # Update sigma
+        if not self.fix_sigma:
+            self.sigma *= numpy.exp((numpy.linalg.norm(self.ps) / self.chiN - 1.) *
+                                    self.cs / self.damps)
+
+        self.update_count += 1
 
     def computeParams(self, params):
         """Computes the parameters depending on :math:`\lambda`. It needs to
@@ -215,9 +235,6 @@ class Strategy(object):
         self.damps = 1. + 2. * max(0, sqrt((self.mueff - 1.) /
                                            (self.dim + 1.)) - 1.) + self.cs
         self.damps = params.get("damps", self.damps)
-
-        self.lb = params.get("lb_")
-        self.ub = params.get("ub_")
 
     def _applyBounds(self, indvs):
 
