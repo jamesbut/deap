@@ -247,11 +247,11 @@ class Strategy(object):
         for i in range(len(indvs)):
             for j in range(len(indvs[i])):
                 if self.lb is not None:
-                    if indvs[i][j] < self.params['lb_'][j]:
-                        indvs[i][j] = self.params['lb_'][j]
+                    if indvs[i][j] < self.params['lb'][j]:
+                        indvs[i][j] = self.params['lb'][j]
                 if self.ub is not None:
-                    if indvs[i][j] > self.params['ub_'][j]:
-                        indvs[i][j] = self.params['ub_'][j]
+                    if indvs[i][j] > self.params['ub'][j]:
+                        indvs[i][j] = self.params['ub'][j]
 
         return indvs
 
