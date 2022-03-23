@@ -115,7 +115,7 @@ class Strategy(object):
         self.fix_C = self.params.get('fix_C', False)
         self.fix_sigma = self.params.get('fix_sigma', False)
 
-        self.verbosity = self.params.get('verbosity', False)
+        self.verbosity = self.params.get('verbosity', 0)
 
     def generate(self, ind_init, num_indvs=None):
         """Generate a population of num_indvs individuals of type
@@ -130,12 +130,15 @@ class Strategy(object):
         if num_indvs is None:
             num_indvs = self.lambda_
 
-        if self.verbosity:
+        if self.verbosity > 0:
+            print('Centroid:\n', self.centroid)
+            print('sigma:\n', self.sigma)
+
+        if self.verbosity > 1:
             print('C:\n', self.C)
             print('B:\n', self.B)
             print('D:\n', self.B)
             print('BD:\n', self.BD)
-            print('sigma:\n', self.sigma)
 
         arz = numpy.random.standard_normal((num_indvs, self.dim))
         arz = self.centroid + self.sigma * numpy.dot(arz, self.BD.T)
