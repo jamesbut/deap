@@ -114,6 +114,7 @@ class Strategy(object):
 
         self.fix_C = self.params.get('fix_C', False)
         self.fix_sigma = self.params.get('fix_sigma', False)
+        self.fix_centroid = self.params.get('fix_centroid', False)
 
         self.verbosity = self.params.get('verbosity', 0)
 
@@ -160,8 +161,10 @@ class Strategy(object):
         """
         population.sort(key=lambda ind: ind.fitness, reverse=True)
 
-        old_centroid = self.centroid
-        self.centroid = numpy.dot(self.weights, population[0:self.mu])
+        # Update centroid
+        if not self.fix_centroid:
+            old_centroid = self.centroid
+            self.centroid = numpy.dot(self.weights, population[0:self.mu])
 
         if not (self.fix_sigma and self.fix_C):
             c_diff = self.centroid - old_centroid
