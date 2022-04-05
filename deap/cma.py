@@ -197,10 +197,10 @@ class Strategy(object):
 
             self.cond = self.diagD[indx[-1]] / self.diagD[indx[0]]
 
-            # Check all values in self.diagD[indx] are > 0. before taking sqrt
-            for d in self.diagD[indx]:
+            # Check all values in self.diagD are > 0. before taking sqrt
+            for i, d in enumerate(self.diagD):
                 if d < 0.:
-                    d = 0.
+                    self.diagD[i] = 0.
 
             self.diagD = self.diagD[indx] ** 0.5
             self.B = self.B[:, indx]
