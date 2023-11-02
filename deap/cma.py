@@ -118,6 +118,9 @@ class Strategy(object):
 
         self.verbosity = self.params.get('verbosity', 0)
 
+        # Seed random number generator
+        self.rng = numpy.random.default_rng(self.params.get('seed', None))
+
     def generate(self, ind_init, num_indvs=None):
         """Generate a population of num_indvs individuals of type
         *ind_init* from the current strategy.
@@ -141,7 +144,7 @@ class Strategy(object):
             print('D:\n', self.B)
             print('BD:\n', self.BD)
 
-        arz = numpy.random.standard_normal((num_indvs, self.dim))
+        arz = self.rng.standard_normal((num_indvs, self.dim))
         arz = self.centroid + self.sigma * numpy.dot(arz, self.BD.T)
 
         # If bounds are given, modify individuals to stay within bounds.
