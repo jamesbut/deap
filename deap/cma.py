@@ -121,6 +121,12 @@ class Strategy(object):
         # Seed random number generator
         self.rng = numpy.random.default_rng(self.params.get('seed', None))
 
+        # Set limit on sigma.
+        # For whatever reason sometimes when a solution has been located
+        # at extreme precision, the sigma blows back up almost unexpectedly.
+        # This is to prevent that.
+        self.sigma_limit = self.params.get('sigma_limit', 1e20)
+
     def generate(self, ind_init, num_indvs=None):
         """Generate a population of num_indvs individuals of type
         *ind_init* from the current strategy.
@@ -144,12 +150,21 @@ class Strategy(object):
             print('D:\n', self.B)
             print('BD:\n', self.BD)
 
+        # Check whether sigma has overflown
+        if numpy.isinf(self.sigma):
+            raise OverflowError
+
+        # Check whether sigma has surpassed the sigma limit if it has been set
+        if self.sigma_limit is not None and self.sigma > self.sigma_limit:
+            print('CMAES has reached the sigma limit!')
+            raise OverflowError
+
         arz = self.rng.standard_normal((num_indvs, self.dim))
         arz = self.centroid + self.sigma * numpy.dot(arz, self.BD.T)
 
         # If bounds are given, modify individuals to stay within bounds.
-        # Apparently this can make performance worse and screw up the whole covariance
-        # matrix machinery :/
+        # Apparently this can make performance worse and screw up the whole
+        # covariance matrix machinery :/
         if (self.lb is not None) or (self.ub is not None):
             arz = self._applyBounds(arz)
 
